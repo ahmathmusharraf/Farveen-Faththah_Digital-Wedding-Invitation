@@ -4,7 +4,16 @@ import { motion } from 'motion/react';
 
 export default function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Defer iframe rendering until after the main page load sequence is completely finished
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsIframeLoaded(true);
+    }, 2500); // 2.5 seconds gives Safari plenty of time to mark the page flow as 'Done loading'
+    return () => clearTimeout(timer);
+  }, []);
 
   // Auto-play ambient instrumental/nasheed when invitation is opened/revealed
   useEffect(() => {
@@ -37,6 +46,33 @@ export default function MusicPlayer() {
   }, [isPlaying]);
 
   const startPlayback = () => {
+    if (!isIframeLoaded) {
+      setIsIframeLoaded(true);
+      // Wait for React to mount the iframe element, then command play
+      setTimeout(() => {
+        if (iframeRef.current && iframeRef.current.contentWindow) {
+          try {
+            iframeRef.current.contentWindow.postMessage(
+              JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
+              '*'
+            );
+            iframeRef.current.contentWindow.postMessage(
+              JSON.stringify({ event: 'command', func: 'setVolume', args: [60] }),
+              '*'
+            );
+            iframeRef.current.contentWindow.postMessage(
+              JSON.stringify({ event: 'command', func: 'unMute', args: '' }),
+              '*'
+            );
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }, 300);
+      setIsPlaying(true);
+      return;
+    }
+
     if (iframeRef.current && iframeRef.current.contentWindow) {
       try {
         // Send play command to YouTube iframe player
@@ -87,15 +123,17 @@ export default function MusicPlayer() {
   return (
     <div id="ambient-player-bar" className="fixed bottom-5 right-5 z-40">
       {/* Invisible YouTube Player API wrapper with loop and background autoplay pre-buffered */}
-      <iframe
-        ref={iframeRef}
-        id="youtube-bg-audio-player"
-        src="https://www.youtube.com/embed/7H5372PZRdk?enablejsapi=1&autoplay=1&controls=0&loop=1&playlist=7H5372PZRdk&volume=60&mute=0&playsinline=1&start=3"
-        title="Background Wedding Melody"
-        className="pointer-events-none absolute w-0 h-0 opacity-0"
-        style={{ border: 0, width: 0, height: 0 }}
-        allow="autoplay; encrypted-media"
-      />
+      {isIframeLoaded && (
+        <iframe
+          ref={iframeRef}
+          id="youtube-bg-audio-player"
+          src="https://www.youtube.com/embed/7H5372PZRdk?enablejsapi=1&autoplay=1&controls=0&loop=1&playlist=7H5372PZRdk&volume=60&mute=0&playsinline=1&start=3"
+          title="Background Wedding Melody"
+          className="pointer-events-none absolute w-0 h-0 opacity-0"
+          style={{ border: 0, width: 0, height: 0 }}
+          allow="autoplay; encrypted-media"
+        />
+      )}
 
       <motion.button
         whileHover={{ scale: 1.05 }}
