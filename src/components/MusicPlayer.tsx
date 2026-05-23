@@ -7,11 +7,11 @@ export default function MusicPlayer() {
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Defer iframe rendering until after the main page load sequence is completely finished
+  // Defer iframe rendering slightly to allow main thread layout to finish without blocking onload
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsIframeLoaded(true);
-    }, 2500); // 2.5 seconds gives Safari plenty of time to mark the page flow as 'Done loading'
+    }, 200); // 200ms ensures Safari finishes initial load cycle and immediately initializes the music frame
     return () => clearTimeout(timer);
   }, []);
 
