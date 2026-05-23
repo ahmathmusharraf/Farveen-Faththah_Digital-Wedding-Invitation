@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Play, Pause, Music } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -15,10 +15,12 @@ export default function MusicPlayer() {
     return () => clearTimeout(timer);
   }, []);
 
+  const hasStartedPlayback = useRef(false);
+
   // Auto-play ambient instrumental/nasheed when invitation is opened/revealed
   useEffect(() => {
     const handleUnveilInvitation = () => {
-      if (!isPlaying) {
+      if (!hasStartedPlayback.current) {
         startPlayback();
       }
     };
@@ -26,12 +28,18 @@ export default function MusicPlayer() {
     return () => {
       window.removeEventListener('unveil-invitation', handleUnveilInvitation);
     };
-  }, [isPlaying]);
+  }, []);
 
   // Handle document level initial interaction to auto-play background music
   useEffect(() => {
-    const handleFirstGesture = () => {
-      if (!isPlaying) {
+    const handleFirstGesture = (e: Event) => {
+      // Ignore click on the music player itself to prevent interference with toggleSound
+      const target = e.target as HTMLElement;
+      if (target && target.closest('#ambient-player-bar')) {
+        return;
+      }
+
+      if (!hasStartedPlayback.current) {
         startPlayback();
       }
     };
@@ -43,27 +51,25 @@ export default function MusicPlayer() {
       document.removeEventListener('click', handleFirstGesture);
       document.removeEventListener('touchstart', handleFirstGesture);
     };
-  }, [isPlaying]);
+  }, []);
 
   const startPlayback = () => {
+    hasStartedPlayback.current = true;
+    
     if (!isIframeLoaded) {
       setIsIframeLoaded(true);
       // Wait for React to mount the iframe element, then command play
       setTimeout(() => {
         if (iframeRef.current && iframeRef.current.contentWindow) {
           try {
-            iframeRef.current.contentWindow.postMessage(
-              JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-              '*'
-            );
-            iframeRef.current.contentWindow.postMessage(
-              JSON.stringify({ event: 'command', func: 'setVolume', args: [60] }),
-              '*'
-            );
-            iframeRef.current.contentWindow.postMessage(
-              JSON.stringify({ event: 'command', func: 'unMute', args: '' }),
-              '*'
-            );
+            // Send unMute and play video using both formats to be fully bulletproof
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: '' }), '*');
+            
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*');
+            
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [60] }), '*');
           } catch (e) {
             console.error(e);
           }
@@ -76,20 +82,13 @@ export default function MusicPlayer() {
     if (iframeRef.current && iframeRef.current.contentWindow) {
       try {
         // Send play command to YouTube iframe player
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-          '*'
-        );
-        // Set dynamic soft background volume
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'setVolume', args: [60] }),
-          '*'
-        );
-        // Ensure unmuted
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'unMute', args: '' }),
-          '*'
-        );
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: '' }), '*');
+        
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*');
+        
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [60] }), '*');
         setIsPlaying(true);
       } catch (err) {
         console.error("Failed to trigger YouTube playback", err);
@@ -98,13 +97,18 @@ export default function MusicPlayer() {
   };
 
   const pausePlayback = () => {
+    // Keep hasStartedPlayback.current as true so the app knows the user explicitly configured or interacted with the music player, prevents automatic restarting
+    hasStartedPlayback.current = true;
+    
     if (iframeRef.current && iframeRef.current.contentWindow) {
       try {
-        // Send pause command to YouTube iframe player
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
-          '*'
-        );
+        // Send mute & pause using both formats for extreme cross-browser compliance
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: '' }), '*');
+        
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*');
+        
         setIsPlaying(false);
       } catch (err) {
         console.error("Failed to pause YouTube playback", err);
@@ -112,7 +116,11 @@ export default function MusicPlayer() {
     }
   };
 
-  const toggleSound = () => {
+  const toggleSound = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (!isPlaying) {
       startPlayback();
     } else {
