@@ -1,4 +1,4 @@
-import { useState, useEffect, MouseEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { ViewMode, RSVP, WishDua, WeddingDetails } from './types';
 import RSVPForm from './components/RSVPForm';
 import Guestbook from './components/Guestbook';
@@ -8,6 +8,7 @@ import GlitterDust from './components/GlitterDust';
 import RoyalGatePass from './components/RoyalGatePass';
 import GoldBorderFrame from './components/GoldBorderFrame';
 import WeddingIcon from './components/WeddingIcon';
+import EnvelopeView from './components/EnvelopeView';
 import { 
   Heart, 
   MapPin, 
@@ -64,40 +65,6 @@ export default function App() {
 
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'nikkah' | 'venue' | 'rsvp' | 'gatepass' | 'duas'>('nikkah');
-
-  // Interactive 3D tilt tracking for the premier envelope opening experience
-  const [envelopeTilt, setEnvelopeTilt] = useState({ x: 0, y: 0 });
-  const [envelopeGlare, setEnvelopeGlare] = useState({ x: 50, y: 50 });
-  const [isEnvelopeHovered, setIsEnvelopeHovered] = useState(false);
-
-  const handleEnvelopeMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const xc = rect.width / 2;
-    const yc = rect.height / 2;
-    
-    // Smooth responsive tilt
-    const rotateX = -(y - yc) / (rect.height / 22);
-    const rotateY = (x - xc) / (rect.width / 22);
-    
-    const xPct = (x / rect.width) * 100;
-    const yPct = (y / rect.height) * 100;
-
-    setEnvelopeTilt({ x: rotateX, y: rotateY });
-    setEnvelopeGlare({ x: xPct, y: yPct });
-  };
-
-  const handleEnvelopeMouseEnter = () => {
-    setIsEnvelopeHovered(true);
-  };
-
-  const handleEnvelopeMouseLeave = () => {
-    setIsEnvelopeHovered(false);
-    setEnvelopeTilt({ x: 0, y: 0 });
-    setEnvelopeGlare({ x: 50, y: 50 });
-  };
 
   useEffect(() => {
     const checkSize = () => {
@@ -964,194 +931,14 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         {!isEnvelopeOpened ? (
-          /* Locked sealed Wax Envelope introduction page */
-          <motion.div
-            key="envelope-view"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -150, scale: 0.95, filter: 'blur(12px)' }}
-            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 md:top-12 top-0 z-40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1d2724] via-[#100c0a] to-[#030202] flex items-center justify-center p-4 overflow-y-auto select-none"
-            id="envelope-wrapper"
-          >
-            {/* Enchanted background floating gold particles */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-50">
-              {[...Array(20)].map((_, i) => {
-                const size = Math.random() * 3 + 1.5;
-                const delay = Math.random() * 5;
-                const duration = Math.random() * 8 + 6;
-                const left = Math.random() * 100;
-                return (
-                  <div
-                    key={i}
-                    className="absolute bg-gradient-to-tr from-amber-300 to-amber-500 rounded-full opacity-35 animate-[bounce_8s_infinite] pointer-events-none"
-                    style={{
-                      width: `${size}px`,
-                      height: `${size}px`,
-                      left: `${left}%`,
-                      top: `${Math.random() * 100}%`,
-                      filter: 'blur(0.5px)',
-                      animationDelay: `${delay}s`,
-                      animationDuration: `${duration}s`,
-                    }}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Ambient background glowing color rings */}
-            <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-amber-500/5 blur-[130px] rounded-full pointer-events-none animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-emerald-500/5 blur-[130px] rounded-full pointer-events-none animate-pulse" style={{ animationDelay: '2s' }} />
-
-            {/* 3D Parallax Envelope Frame wrapper */}
-            <div style={{ perspective: '1200px' }}>
-              <motion.div 
-                onMouseMove={handleEnvelopeMouseMove}
-                onMouseEnter={handleEnvelopeMouseEnter}
-                onMouseLeave={handleEnvelopeMouseLeave}
-                animate={{
-                  rotateX: isEnvelopeHovered ? envelopeTilt.x : 0,
-                  rotateY: isEnvelopeHovered ? envelopeTilt.y : 0,
-                  scale: isEnvelopeHovered ? 1.02 : 1,
-                  boxShadow: isEnvelopeHovered 
-                    ? "0 35px 80px -15px rgba(0,0,0,0.95), 0 0 50px rgba(245, 158, 11, 0.15)"
-                    : "0 25px 60px -15px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.4)"
-                }}
-                transition={{ type: 'spring', stiffness: 220, damping: 25 }}
-                className="w-full max-w-lg p-8 md:p-12 bg-gradient-to-tr from-[#14100c] via-[#211812] to-[#34271d] rounded-[32px] border-2 border-amber-400/50 text-center relative overflow-hidden animate-gold-glow" 
-                id="envelope"
-              >
-                {/* Micro laser line loops (Desktop-only for gorgeous initial rendering) */}
-                <div className="absolute top-0 left-0 w-full h-[1.5px] overflow-hidden pointer-events-none z-30 hidden md:block">
-                  <div className="w-1/3 h-full bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-laser-t" />
-                </div>
-                <div className="absolute top-0 right-0 w-[1.5px] h-full overflow-hidden pointer-events-none z-30 hidden md:block">
-                  <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-amber-400 to-transparent animate-laser-r" style={{ animationDelay: '1s' }} />
-                </div>
-                <div className="absolute bottom-0 left-0 w-full h-[1.5px] overflow-hidden pointer-events-none z-30 hidden md:block">
-                  <div className="w-1/3 h-full bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-laser-b" style={{ animationDelay: '2s' }} />
-                </div>
-                <div className="absolute top-0 left-0 w-[1.5px] h-full overflow-hidden pointer-events-none z-30 hidden md:block">
-                  <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-amber-400 to-transparent animate-laser-l" style={{ animationDelay: '3s' }} />
-                </div>
-
-                {/* Highly Creative Specially Designed Traditional Arabesque Borders */}
-                <div className="absolute inset-3 border border-amber-400/20 rounded-[26px] pointer-events-none" />
-                <div className="absolute inset-4 border-2 border-[#d4af37]/10 rounded-[22px] pointer-events-none" />
-
-                {/* Handcrafted gold visual corner filigrees and line accents */}
-                <div className="absolute top-6 right-6 w-14 h-14 border-t-2 border-r-2 border-amber-400/50 rounded-tr-xl pointer-events-none" />
-                <div className="absolute bottom-6 left-6 w-14 h-14 border-b-2 border-l-2 border-amber-400/50 rounded-bl-xl pointer-events-none" />
-                <div className="absolute top-6 left-6 w-14 h-14 border-t-2 border-l-2 border-amber-400/30 rounded-tl-xl pointer-events-none" />
-                <div className="absolute bottom-6 right-6 w-14 h-14 border-b-2 border-r-2 border-amber-400/30 rounded-br-xl pointer-events-none" />
-
-                {/* Reflective metallic glare overlay */}
-                <div 
-                  className="absolute inset-0 pointer-events-none opacity-30 mix-blend-overlay transition-opacity duration-300" 
-                  style={{
-                    background: `radial-gradient(circle at ${envelopeGlare.x}% ${envelopeGlare.y}%, rgba(251,191,36,0.4) 0%, transparent 60%)`
-                  }}
-                />
-
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 rounded-full text-[10px] font-extrabold text-amber-300 uppercase tracking-[0.25em] mb-6 border border-amber-500/25 shadow-inner">
-                  <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                  Royal Wedding Invitation
-                </span>
-
-                {/* Ornate spinning wedding crest with laurel wreath framework */}
-                <div className="relative w-32 h-32 mx-auto mb-5 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-dashed border-amber-400/30 animate-spin-slow pointer-events-none" />
-                  
-                  {/* Outer glowing botanical crest path */}
-                  <svg className="absolute w-[124px] h-[124px] text-amber-400/50 animate-[pulse_3.5s_easeInOut_infinite] pointer-events-none" viewBox="0 0 100 100" fill="none">
-                    <circle cx="50" cy="50" r="48" stroke="currentColor" strokeWidth="0.5" strokeDasharray="3,3" />
-                    <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="0.75" />
-                    {/* Tiny gold nodes */}
-                    {[...Array(8)].map((_, i) => {
-                      const angle = (i * 45 * Math.PI) / 180;
-                      return <circle key={i} cx={50 + 44 * Math.cos(angle)} cy={50 + 44 * Math.sin(angle)} r="1.5" fill="currentColor" />;
-                    })}
-                  </svg>
-
-                   <div className="w-24 h-24 rounded-full border-2 border-amber-400/80 bg-[#1a130f] hover:scale-105 hover:rotate-6 transition-transform duration-500 shrink-0 shadow-2xl relative z-10 flex items-center justify-center p-1">
-                     <WeddingIcon className="w-full h-full" />
-                   </div>
-                </div>
-
-                <div className="space-y-3 mb-6 relative z-10">
-                  <p className="font-sans text-[11px] text-amber-300/70 uppercase tracking-[0.32em] font-extrabold">BLESSED BY ALLAH'S GRACE</p>
-                  
-                  {/* Luxury dynamic shimmer text for high-end feel */}
-                  <div className="space-y-1 py-1">
-                    <motion.h2 
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.8 }}
-                      className="font-serif text-3xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
-                    >
-                      {weddingDetails.brideName}
-                    </motion.h2>
-                    <p className="font-serif text-sm text-zinc-400/80 italic font-normal">&</p>
-                    <motion.h2 
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4, duration: 0.8 }}
-                      className="font-serif text-3xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
-                    >
-                      {weddingDetails.groomName}
-                    </motion.h2>
-                  </div>
-                  
-                  <div className="w-28 h-[1.5px] animate-gold-line mx-auto my-3 rounded-full" />
-                  <p className="font-sans text-[11px] text-amber-100/70 font-medium tracking-wide max-w-sm mx-auto leading-relaxed italic">
-                    "Two hearts unite under His beautiful guidance, beginning a blessed journey of love, faith & serenity..."
-                  </p>
-                </div>
-
-                {/* ULTRA-POLISHED TRADITIONAL VELVET WAX SEAL INTERACTIVE TRIGGER */}
-                <div className="relative py-4 flex flex-col items-center justify-center z-20" id="wax-seal-container">
-                  <motion.button
-                    onClick={() => {
-                      setIsEnvelopeOpened(true);
-                      window.dispatchEvent(new Event('unveil-invitation'));
-                    }}
-                    id="unveil-invitation-btn"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.96 }}
-                    className="relative focus:outline-none cursor-pointer flex flex-col items-center group transition-all"
-                  >
-                    {/* Glowing outer aura that beckons the guest to click */}
-                    <div className="absolute -inset-2 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full blur-md opacity-25 group-hover:opacity-40 animate-pulse transition-opacity duration-300" />
-                    
-                    {/* Ornate 3D Embossed Seal Inner Base */}
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#7c1d1a] via-[#a82a25] to-[#c73430] border-2 border-[#ffbe5a]/40 flex items-center justify-center shadow-[0_10px_20px_-5px_rgba(0,0,0,0.8),inset_0_4px_8px_rgba(255,255,255,0.4)] relative overflow-hidden transition-all duration-300">
-                      {/* Wax shine sweeps */}
-                      <div className="absolute inset-x-0 top-0 h-1/2 bg-white/15 rounded-t-full" />
-                      
-                      {/* Embossed Lettering: F & A */}
-                      <span className="font-serif text-amber-200 text-lg font-extrabold tracking-tighter select-none dropshadow-[0_1.5px_2px_rgba(0,0,0,0.7)]">
-                        F&A
-                      </span>
-
-                      {/* Ornate circular stars framing the emblem */}
-                      <div className="absolute inset-1 rounded-full border border-dashed border-amber-300/35 pointer-events-none" />
-                    </div>
-
-                    <div className="mt-3 flex items-center gap-1.5 px-4 py-1.5 bg-[#1b1511] border border-amber-500/20 rounded-lg group-hover:border-amber-400/40 transition-colors">
-                      <MailOpen className="w-3.5 h-3.5 text-amber-400 group-hover:animate-bounce" />
-                      <span className="font-sans text-[10px] text-amber-200 group-hover:text-amber-300 uppercase tracking-widest font-extrabold transition-colors">
-                        Open Invitation
-                      </span>
-                    </div>
-                  </motion.button>
-                </div>
-
-                <div className="mt-4 font-sans text-[9.5px] text-amber-200/40 flex items-center justify-center gap-1.5 leading-normal">
-                  <Info className="w-3.5 h-3.5 text-amber-400/50 shrink-0" />
-                  <span>Click the Royal Seal to unfold the digital ceremony card.</span>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
+          <EnvelopeView 
+            brideName={weddingDetails.brideName} 
+            groomName={weddingDetails.groomName} 
+            onOpen={() => {
+              setIsEnvelopeOpened(true);
+              window.dispatchEvent(new Event('unveil-invitation'));
+            }} 
+          />
         ) : (
           /* Render Simulated Preview based on switch modes */
           <motion.div
