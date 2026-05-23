@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 // References to generated visual assets
 // @ts-ignore
-import weddingBanner from '@/src/assets/images/wedding_banner_1779528499872.png';
+import weddingBanner from '@/src/assets/images/wedding_banner_royal_gold_1779529667041.png';
 
 const initialWishes: WishDua[] = [
   {
