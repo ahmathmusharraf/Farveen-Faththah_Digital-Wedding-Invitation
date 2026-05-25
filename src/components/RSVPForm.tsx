@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RSVP, WeddingDetails } from '../types';
-import { Sparkles, Calendar, CheckCircle2, UserCheck, Heart, MessageCircle } from 'lucide-react';
+import { Sparkles, Calendar, CheckCircle2, UserCheck, Heart, MessageCircle, Car, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface RSVPFormProps {
@@ -17,6 +17,8 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
     dietaryRequirements: 'Halal Only',
     message: '',
     whatsappContact: '',
+    needsParking: false,
+    parkingSpaces: 1,
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -28,6 +30,7 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
     onRSVPSubmit({
       ...formData,
       guestsCount: formData.attending ? formData.guestsCount : 0,
+      parkingSpaces: (formData.attending && formData.needsParking) ? formData.parkingSpaces : 0,
     });
     setSubmitted(true);
   };
@@ -50,7 +53,12 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
     const blessings = formData.message.trim() ? `\n\n📌 *Message:* "${formData.message.trim()}"` : '';
     const contact = formData.whatsappContact.trim() ? `\n📞 *Contact:* ${formData.whatsappContact.trim()}` : '';
 
-    const text = `*Wedding RSVP Confirmation* 🌟\n\nAssalamu Alaikum! I have submitted my RSVP for the wedding of *${weddingDetails?.brideName || 'Fathima Farveen'}* and *${weddingDetails?.groomName || 'Abdul Faththah'}*:\n\n👤 *Guest Name:* ${formData.name}\n💌 *Status:* ${attendanceStatus}\n${formData.attending ? `👥 *Total Guests:* ${formData.guestsCount}\n` : ''}${contact}${blessings}\n\nSent from wedding website invitation. Insha Allah!`;
+    const parkingStatus = formData.attending 
+      ? (formData.needsParking ? `🚗 *Parking Required:* Yes (${formData.parkingSpaces} space${formData.parkingSpaces > 1 ? 's' : ''})` : '🚗 *Parking Required:* No')
+      : '';
+    const parkingLine = parkingStatus ? `\n${parkingStatus}` : '';
+
+    const text = `*Wedding RSVP Confirmation* 🌟\n\nAssalamu Alaikum! I have submitted my RSVP for the wedding of *${weddingDetails?.brideName || 'Fathima Farveen'}* and *${weddingDetails?.groomName || 'Abdul Faththah'}*:\n\n👤 *Guest Name:* ${formData.name}\n💌 *Status:* ${attendanceStatus}\n${formData.attending ? `👥 *Total Guests:* ${formData.guestsCount}\n` : ''}${parkingLine}${contact}${blessings}\n\nSent from wedding website invitation. Insha Allah!`;
     
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
@@ -143,7 +151,7 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.15 }}
-                className="text-left"
+                className="space-y-3 text-left"
               >
                 {/* Guest Count */}
                 <div className="space-y-0.5">
@@ -163,6 +171,71 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
                     ))}
                   </select>
                 </div>
+
+                {/* Do you want parking Yes/No */}
+                <div className="space-y-1">
+                  <span className="block text-[9px] font-bold text-emerald-950/80 uppercase tracking-wider">
+                    Do you need hotel parking?
+                  </span>
+                  <div className="grid grid-cols-2 gap-2" id="rsvp-parking-selection">
+                    <button
+                      type="button"
+                      id="rsvp-parking-yes"
+                      onClick={() => setFormData({ ...formData, needsParking: true })}
+                      className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border font-sans text-xs font-semibold cursor-pointer transition-all ${
+                        formData.needsParking
+                          ? 'bg-gradient-to-br from-emerald-800 to-emerald-950 text-white border-emerald-900 shadow-sm'
+                          : 'bg-white text-emerald-950 border-amber-200/50 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      <Car className={`w-3.5 h-3.5 ${formData.needsParking ? 'text-amber-300' : 'text-emerald-800'}`} />
+                      <span className="text-[11px]">Yes</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      id="rsvp-parking-no"
+                      onClick={() => setFormData({ ...formData, needsParking: false })}
+                      className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border font-sans text-xs font-semibold cursor-pointer transition-all ${
+                        !formData.needsParking
+                          ? 'bg-gradient-to-br from-amber-800 to-amber-950 text-white border-amber-900 shadow-sm'
+                          : 'bg-white text-emerald-950 border-amber-200/50 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      <span className="text-[11px]">No, thanks</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Number of Parking Spaces Inquiry (Only if needsParking is true) */}
+                <AnimatePresence>
+                  {formData.needsParking && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-0.5 text-left"
+                      id="parking-spaces-section"
+                    >
+                      <label htmlFor="rsvp-parking-spaces" className="block text-[9px] font-bold text-emerald-950/80 uppercase tracking-wider">
+                        How many parking spaces do you want?
+                      </label>
+                      <select
+                        id="rsvp-parking-spaces"
+                        className="w-full px-2.5 py-2 bg-amber-50/20 text-emerald-950 border border-amber-200/50 rounded-lg focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500 outline-none transition-all cursor-pointer font-sans text-xs"
+                        value={formData.parkingSpaces}
+                        onChange={(e) => setFormData({ ...formData, parkingSpaces: Number(e.target.value) })}
+                      >
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? 'Space' : 'Spaces'}
+                          </option>
+                        ))}
+                      </select>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
@@ -284,6 +357,8 @@ export default function RSVPForm({ onRSVPSubmit, guestRSVPs, weddingDetails }: R
                   dietaryRequirements: 'Halal Only',
                   message: '',
                   whatsappContact: '',
+                  needsParking: false,
+                  parkingSpaces: 1,
                 });
               }}
               className="px-3 py-1.5 bg-white text-emerald-950 hover:bg-amber-100/10 text-[10px] font-bold rounded-lg border border-amber-200 cursor-pointer transition-all mx-auto block"
