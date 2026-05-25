@@ -6,6 +6,8 @@ export interface RSVP {
   dietaryRequirements: string;
   message: string;
   whatsappContact: string;
+  needsParking?: boolean;
+  parkingSpaces?: number;
   createdAt: number;
 }
 
