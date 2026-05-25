@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ViewMode, RSVP, WishDua, WeddingDetails } from './types';
+import { getHijriYear } from './lib/dateUtils';
 import RSVPForm from './components/RSVPForm';
 import Guestbook from './components/Guestbook';
 import EventDetails from './components/EventDetails';
@@ -118,6 +119,16 @@ export default function App() {
       bridePhone: '+971 58 979 4114'
     };
   });
+
+  const copyrightYear = useMemo(() => {
+    try {
+      const gYear = new Date(weddingDetails.weddingDate).getFullYear();
+      const hYear = getHijriYear(new Date(weddingDetails.weddingDate));
+      return `© ${hYear} AH / ${gYear}`;
+    } catch {
+      return `© 1447 AH / 2026`;
+    }
+  }, [weddingDetails.weddingDate]);
 
   const handleUpdateWeddingDetails = (updatedDetails: WeddingDetails) => {
     setWeddingDetails(updatedDetails);
@@ -808,7 +819,7 @@ export default function App() {
 
                 <div className="space-y-1.5">
                   <p className="font-sans text-[9px] font-medium text-[#2c1f17]/50 tracking-wide">
-                    © 1447 AH / 2026. Made with love for Abdul Faththah & Fathima Farveen celebrations.
+                    {copyrightYear}. Made with love for {weddingDetails?.groomName || 'Abdul Faththah'} & {weddingDetails?.brideName || 'Fathima Farveen'} celebrations.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
