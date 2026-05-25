@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Calendar, MapPin, Clock, ExternalLink, Moon, Bell, BellRing, Check, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { WeddingDetails } from '../types';
+import { getHijriDateString } from '../lib/dateUtils';
 
 interface EventDetailsProps {
   weddingDetails?: WeddingDetails;
@@ -14,7 +15,6 @@ export default function EventDetails({ weddingDetails }: EventDetailsProps) {
   const rsvpDeadlineLabel = weddingDetails?.rsvpDeadlineLabel || 'June 15';
   
   const dateLabel = weddingDetails?.dateLabel || 'Saturday Night, June 27';
-  const islamicDateLabel = weddingDetails?.islamicDateLabel || '12 Dhu al-Hijjah 1447 AH';
   const timeLabel = weddingDetails?.timeLabel || '7:30 PM';
   const timeSub = weddingDetails?.timeSub || 'Arrival requested by 7:15';
   
@@ -27,6 +27,10 @@ export default function EventDetails({ weddingDetails }: EventDetailsProps) {
       ? new Date(weddingDetails.weddingDate) 
       : new Date('2026-06-27T19:30:00+04:00'); // Default: Dubai time zone (GMT+4)
   }, [weddingDetails?.weddingDate]);
+
+  const islamicDateLabel = useMemo(() => {
+    return getHijriDateString(weddingDate);
+  }, [weddingDate]);
 
   const [reminderStatus, setReminderStatus] = useState<'idle' | 'success'>('idle');
 
