@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ViewMode, RSVP, WishDua, WeddingDetails } from './types';
 import { getHijriYear } from './lib/dateUtils';
+import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { collection, onSnapshot, query, orderBy, setDoc, doc, updateDoc, increment, getDocFromServer } from 'firebase/firestore';
 import RSVPForm from './components/RSVPForm';
 import Guestbook from './components/Guestbook';
 import EventDetails from './components/EventDetails';
@@ -144,6 +146,64 @@ export default function App() {
     localStorage.setItem('wedding_wishes', JSON.stringify(wishes));
   }, [wishes]);
 
+  // Real-time Firestore synchronizer
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.warn("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+
+    // 1. Listen to RSVPs collection
+    const rsvpQuery = query(collection(db, 'rsvps'), orderBy('createdAt', 'desc'));
+    const unsubscribeRSVPs = onSnapshot(rsvpQuery, (snapshot) => {
+      const dbRSVPs: RSVP[] = [];
+      snapshot.forEach((doc) => {
+        dbRSVPs.push(doc.data() as RSVP);
+      });
+      if (dbRSVPs.length > 0) {
+        setRsvps(dbRSVPs);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'rsvps');
+    });
+
+    // 2. Listen to Guestbook/Wishes collection
+    const wishesQuery = query(collection(db, 'wishes'), orderBy('createdAt', 'desc'));
+    const unsubscribeWishes = onSnapshot(wishesQuery, async (snapshot) => {
+      const dbWishes: WishDua[] = [];
+      snapshot.forEach((doc) => {
+        dbWishes.push(doc.data() as WishDua);
+      });
+      
+      if (dbWishes.length === 0) {
+        // Seeding empty database with initial wishes once
+        setWishes(initialWishes);
+        for (const wish of initialWishes) {
+          try {
+            await setDoc(doc(db, 'wishes', wish.id), wish);
+          } catch (e) {
+            console.error("Error seeding initial wish:", e);
+          }
+        }
+      } else {
+        setWishes(dbWishes);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'wishes');
+    });
+
+    return () => {
+      unsubscribeRSVPs();
+      unsubscribeWishes();
+    };
+  }, []);
+
   const generateSafeUUID = () => {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
       try {
@@ -165,7 +225,15 @@ export default function App() {
       id: generateSafeUUID(),
       createdAt: Date.now(),
     };
-    setRsvps([rsvp, ...rsvps]);
+    
+    // Optimistic UI update
+    setRsvps(prev => [rsvp, ...prev.filter(r => r.id !== rsvp.id)]);
+
+    try {
+      await setDoc(doc(db, 'rsvps', rsvp.id), rsvp);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `rsvps/${rsvp.id}`);
+    }
 
     // Async push to Google Sheets Webhook if configured in Admin settings
     const webhookUrl = localStorage.getItem('wedding_apps_script_url');
@@ -186,18 +254,35 @@ export default function App() {
     }
   };
 
-  const handleAddWish = (newWish: Omit<WishDua, 'id' | 'likes' | 'createdAt'>) => {
+  const handleAddWish = async (newWish: Omit<WishDua, 'id' | 'likes' | 'createdAt'>) => {
     const wish: WishDua = {
       ...newWish,
       id: generateSafeUUID(),
       likes: 0,
       createdAt: Date.now(),
     };
-    setWishes([wish, ...wishes]);
+    
+    // Optimistic UI update
+    setWishes(prev => [wish, ...prev.filter(w => w.id !== wish.id)]);
+
+    try {
+      await setDoc(doc(db, 'wishes', wish.id), wish);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `wishes/${wish.id}`);
+    }
   };
 
-  const handleLikeWish = (id: string) => {
-    setWishes(wishes.map(w => w.id === id ? { ...w, likes: w.likes + 1 } : w));
+  const handleLikeWish = async (id: string) => {
+    // Optimistic UI update
+    setWishes(prev => prev.map(w => w.id === id ? { ...w, likes: w.likes + 1 } : w));
+
+    try {
+      await updateDoc(doc(db, 'wishes', id), {
+        likes: increment(1)
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `wishes/${id}`);
+    }
   };
 
   const fallbackCopyText = (text: string, designation: string) => {
