@@ -15,8 +15,8 @@ export default function EventDetails({ weddingDetails }: EventDetailsProps) {
   const rsvpDeadlineLabel = weddingDetails?.rsvpDeadlineLabel || 'June 15';
   
   const dateLabel = weddingDetails?.dateLabel || 'Saturday Night, June 27';
-  const timeLabel = weddingDetails?.timeLabel || '7:30 PM';
-  const timeSub = weddingDetails?.timeSub || 'Arrival requested by 7:15';
+  const timeLabel = weddingDetails?.timeLabel || '7:00 PM';
+  const timeSub = weddingDetails?.timeSub || 'Arrival requested by 6:45 PM';
   
   const locationName = weddingDetails?.locationName || 'Al Khoory Sky Garden Hotel';
   const locationSub = weddingDetails?.locationSub || 'Airport Road, Deira, Dubai, UAE';
@@ -25,7 +25,7 @@ export default function EventDetails({ weddingDetails }: EventDetailsProps) {
   const weddingDate = useMemo(() => {
     return weddingDetails?.weddingDate 
       ? new Date(weddingDetails.weddingDate) 
-      : new Date('2026-06-27T19:30:00+04:00'); // Default: Dubai time zone (GMT+4)
+      : new Date('2026-06-27T19:00:00+04:00'); // Default: Dubai time zone (GMT+4)
   }, [weddingDetails?.weddingDate]);
 
   const islamicDateLabel = useMemo(() => {
