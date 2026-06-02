@@ -101,17 +101,32 @@ export default function App() {
   // Dynamic Website details configuration with localStorage persistence
   const [weddingDetails, setWeddingDetails] = useState<WeddingDetails>(() => {
     const saved = localStorage.getItem('wedding_details');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Clean migration of old default 19:30 hours to 19:00 hours (7:00 PM)
+        if (parsed.weddingDate === '2026-06-27T19:30:00+04:00' || parsed.timeLabel === '7:30 PM') {
+          parsed.weddingDate = '2026-06-27T19:00:00+04:00';
+          parsed.timeLabel = '7:00 PM';
+          parsed.timeSub = 'Arrival requested by 6:45 PM';
+          localStorage.setItem('wedding_details', JSON.stringify(parsed));
+        }
+        return parsed as WeddingDetails;
+      } catch (e) {
+        console.error("Failed to parse cached details, using fallback:", e);
+      }
+    }
+    return {
       brideName: 'Fathima Farveen',
       brideSub: 'Our Cherished Daughter',
       brideParents: 'MR. MOHAMMAD FAWSER & MRS. ASMIKA WAHABDEEN',
       groomName: 'Abdul Faththah',
       groomSub: 'Son of Mr. & Mrs. M.H. Faslul Haq',
-      weddingDate: '2026-06-27T19:30:00+04:00',
+      weddingDate: '2026-06-27T19:00:00+04:00',
       dateLabel: 'Saturday Night, June 27',
       islamicDateLabel: '12 Dhu al-Hijjah 1447 AH',
-      timeLabel: '7:30 PM',
-      timeSub: 'Arrival requested by 7:15 PM',
+      timeLabel: '7:00 PM',
+      timeSub: 'Arrival requested by 6:45 PM',
       locationName: 'Al Khoory Sky Garden Hotel',
       locationSub: 'Airport Road, Deira, Dubai, UAE',
       locationMapUrl: 'https://maps.google.com/?q=Al+Khoory+Sky+Garden+Hotel+Deira+Dubai',
